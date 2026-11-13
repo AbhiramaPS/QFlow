@@ -1,1 +1,65 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><p class="eyebrow">PROVIDER ACCOUNT</p><h1>Your services</h1><p class="lead">Add a listing, put up a few times, and check booking requests here.</p></div></div><section class="provider-layout"><div class="provider-main"><section class="panel"><div class="panel-heading"><div><p class="eyebrow">NEW LISTING</p><h2>Add a service</h2></div></div><form class="inline-form offering-form" method="post" action="{{ url_for('create_offering') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Service name<input name="name" maxlength="120" placeholder="e.g. Maths tutoring" required></label><label>Session length<select name="duration_minutes">{% for mins in [15,30,45,60,90,120] %}<option value="{{ mins }}">{{ mins }} minutes</option>{% endfor %}</select></label><label class="wide-label">A short description<textarea name="description" maxlength="800" rows="2" placeholder="What should someone know before they book?"></textarea></label><button class="button">Add service</button></form></section>{% for offering in offerings %}<section class="panel offering-panel"><div class="panel-heading"><div><p class="eyebrow">{{ offering.duration_minutes }} MINUTES</p><h2>{{ offering.name }}</h2></div><form method="post" action="{{ url_for('toggle_offering',offering_id=offering.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="outline-button">{{ 'Pause listing' if offering.active else 'Put listing back up' }}</button></form></div><p class="muted">{{ offering.description or 'No description added yet.' }}</p><form class="slot-form" method="post" action="{{ url_for('create_slot',offering_id=offering.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Add a time you’re free<input type="datetime-local" name="starts_at" required></label><button class="outline-button">Add time</button></form><div class="slot-list">{% for slot in offering.slots|sort(attribute='starts_at') %}<div class="slot-row"><span>{{ slot.starts_at.strftime('%a, %b %d · %I:%M %p') }}–{{ slot.ends_at.strftime('%I:%M %p') }}</span><span class="pill {{ slot.status|lower }}">{{ slot.status|title }}</span></div>{% else %}<p class="muted">No times listed yet.</p>{% endfor %}</div></section>{% else %}<div class="empty-state"><h3>You haven’t listed a service yet.</h3><p>Use the form above to add one. You can add appointment times next.</p></div>{% endfor %}</div><aside class="provider-side panel"><p class="eyebrow">YOUR BOOKINGS</p><h2>Requests from customers</h2>{% for reservation in reservations %}<article class="booking-item"><div class="booking-heading"><strong>{{ reservation.slot.offering.name }}</strong><span class="pill {{ reservation.status|lower }}">{{ reservation.status|title }}</span></div><p>{{ reservation.customer.name }} · {{ reservation.customer.email }}</p><p class="booking-time">{{ reservation.slot.starts_at.strftime('%a, %b %d · %I:%M %p') }}</p>{% if reservation.note %}<p class="booking-note">Customer note: {{ reservation.note }}</p>{% endif %}<div class="booking-actions">{% if reservation.status=='PENDING' %}<form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='confirm') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini primary-mini">Confirm</button></form><form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='decline') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini">Decline</button></form>{% elif reservation.status=='CONFIRMED' %}<form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='complete') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini primary-mini">Mark done</button></form><form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='cancel') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini">Cancel booking</button></form>{% endif %}</div></article>{% else %}<p class="muted">No requests yet. New ones will show up here.</p>{% endfor %}</aside></section>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">PROVIDER ACCOUNT</p>
+    <h1>Your services</h1>
+    <p class="lead">Add a listing, put up a few times, and check booking requests here.</p>
+  </div>
+</div>
+<section class="provider-layout">
+  <div class="provider-main">
+    <section class="panel">
+      <div class="panel-heading"><div><p class="eyebrow">NEW LISTING</p><h2>Add a service</h2></div></div>
+      <form class="inline-form offering-form" method="post" action="{{ url_for('create_offering') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Service name<input name="name" maxlength="120" placeholder="e.g. Maths tutoring" required></label>
+        <label>Session length<select name="duration_minutes">{% for mins in [15,30,45,60,90,120] %}<option value="{{ mins }}">{{ mins }} minutes</option>{% endfor %}</select></label>
+        <label class="wide-label">A short description<textarea name="description" maxlength="800" rows="2" placeholder="What should someone know before they book?"></textarea></label>
+        <button class="button">Add service</button>
+      </form>
+    </section>
+    {% for offering in offerings %}
+    <section class="panel offering-panel">
+      <div class="panel-heading">
+        <div><p class="eyebrow">{{ offering.duration_minutes }} MINUTES</p><h2>{{ offering.name }}</h2></div>
+        <form method="post" action="{{ url_for('toggle_offering',offering_id=offering.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="outline-button">{{ 'Pause listing' if offering.active else 'Put listing back up' }}</button></form>
+      </div>
+      <p class="muted">{{ offering.description or 'No description added yet.' }}</p>
+      <form class="slot-form" method="post" action="{{ url_for('create_slot',offering_id=offering.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Add a time you’re free<input type="datetime-local" name="starts_at" required></label>
+        <button class="outline-button">Add time</button>
+      </form>
+      <div class="slot-list">
+        {% for slot in offering.slots|sort(attribute='starts_at') %}
+        <div class="slot-row"><span>{{ slot.starts_at.strftime('%a, %b %d · %I:%M %p') }}–{{ slot.ends_at.strftime('%I:%M %p') }}</span><span class="pill {{ slot.status|lower }}">{{ slot.status|title }}</span></div>
+        {% else %}<p class="muted">No times listed yet.</p>{% endfor %}
+      </div>
+    </section>
+    {% else %}<div class="empty-state"><h3>You haven’t listed a service yet.</h3><p>Use the form above to add one. You can add appointment times next.</p></div>{% endfor %}
+  </div>
+  <aside class="provider-side panel">
+    <p class="eyebrow">YOUR BOOKINGS</p><h2>Requests from customers</h2>
+    {% for reservation in reservations %}
+    <article class="booking-item">
+      <div class="booking-heading"><strong>{{ reservation.slot.offering.name }}</strong><span class="pill {{ reservation.status|lower }}">{{ reservation.status|title }}</span></div>
+      <p>{{ reservation.customer.name }} · {{ reservation.customer.email }}</p>
+      <p class="booking-time">{{ reservation.slot.starts_at.strftime('%a, %b %d · %I:%M %p') }}</p>
+      {% if reservation.note %}<p class="booking-note">Customer note: {{ reservation.note }}</p>{% endif %}
+      <div class="booking-actions">
+        {% if reservation.status=='PENDING' %}
+        <form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='confirm') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini primary-mini">Confirm</button></form>
+        <form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='decline') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini">Decline</button></form>
+        {% elif reservation.status=='CONFIRMED' %}
+        <form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='complete') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini primary-mini">Mark done</button></form>
+        {% endif %}
+        {% if reservation.status in ('PENDING','CONFIRMED') and reservation.slot.starts_at > now %}
+        <form method="post" action="{{ url_for('provider_reservation_action',reservation_id=reservation.id,action='cancel') }}" onsubmit="return confirm('Cancel this appointment? The customer will see that it was cancelled, and the time will reopen.')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="cancel-booking">Cancel appointment</button></form>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}<p class="muted">No requests yet. New ones will show up here.</p>{% endfor %}
+  </aside>
+</section>
+{% endblock %}

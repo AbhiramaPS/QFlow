@@ -255,16 +255,24 @@ def provider_reservation_action(reservation_id, action):
     if reservation.slot.offering.provider_id != current_user().id:
         abort(403)
     transitions = {'confirm': ('PENDING', 'CONFIRMED'), 'decline': ('PENDING', 'DECLINED'),
-                   'complete': ('CONFIRMED', 'COMPLETED'), 'cancel': ('CONFIRMED', 'CANCELLED')}
+                   'complete': ('CONFIRMED', 'COMPLETED'),
+                   'cancel': (('PENDING', 'CONFIRMED'), 'CANCELLED')}
     if action not in transitions:
         abort(400)
     old, new = transitions[action]
-    if reservation.status == old:
+    old_statuses = old if isinstance(old, tuple) else (old,)
+    if reservation.status in old_statuses:
+        if action == 'cancel' and reservation.slot.starts_at <= local_now():
+            flash('This appointment has already started, so it can no longer be cancelled here.', 'error')
+            return redirect(url_for('provider_dashboard'))
         reservation.status = new
         if new in ('DECLINED', 'CANCELLED') and reservation.slot.starts_at > local_now():
             reservation.slot.status = 'AVAILABLE'
         db.session.commit()
-        flash('Reservation updated.', 'success')
+        if new == 'CANCELLED':
+            flash('Appointment cancelled. The customer can see the updated status.', 'success')
+        else:
+            flash('Reservation updated.', 'success')
     return redirect(url_for('provider_dashboard'))
 
 
