@@ -28,9 +28,8 @@ Copy-Item .env.example .env
 Edit `.env` and set a long random `SECRET_KEY` and private demo passwords. Then seed sample accounts/listings and start the app:
 
 ```powershell
-$env:FLASK_APP = "app.py"
-flask seed
-flask run --debug
+.\.venv\Scripts\python -m flask --app app seed
+.\.venv\Scripts\python -m flask --app app run --debug
 ```
 
 Open <http://127.0.0.1:5000>. Leave the terminal open while using QFlow; press **Ctrl+C** to stop Flask. Debug mode reloads Python changes. Refresh after editing templates or styles; use **Ctrl+F5** if the browser keeps an old stylesheet.
@@ -67,3 +66,4 @@ instance/qflow.db         Created automatically on first run
 - A larger deployment should use a production database and add email or push notifications.
 - Old queue-era tables are left in existing databases, but the reservation flow uses the new provider, offering, slot, and reservation tables.
 - Provider and customer accounts are self-serve; there is no platform-wide approval process or payment handling yet.
+
