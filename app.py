@@ -318,11 +318,13 @@ def cancel_reservation(reservation_id):
     if reservation.customer_id != current_user().id:
         abort(403)
     if reservation.status in ACTIVE_RESERVATIONS:
-        reservation.status = 'CANCELLED'
-        if reservation.slot.starts_at > local_now():
+        if reservation.slot.starts_at <= local_now():
+            flash('This appointment has already started, so it can no longer be cancelled here.', 'error')
+        else:
+            reservation.status = 'CANCELLED'
             reservation.slot.status = 'AVAILABLE'
-        db.session.commit()
-        flash('Reservation cancelled.', 'success')
+            db.session.commit()
+            flash('Appointment cancelled. The time is open for someone else to book.', 'success')
     return redirect(url_for('customer_dashboard'))
 
 
