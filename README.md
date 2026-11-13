@@ -66,4 +66,3 @@ instance/qflow.db         Created automatically on first run
 - A larger deployment should use a production database and add email or push notifications.
 - Old queue-era tables are left in existing databases, but the reservation flow uses the new provider, offering, slot, and reservation tables.
 - Provider and customer accounts are self-serve; there is no platform-wide approval process or payment handling yet.
-
