@@ -1,8 +1,11 @@
 import os
 from datetime import datetime, timedelta
 from functools import wraps
+from io import BytesIO
+from urllib.parse import urlencode
 
-from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
+import qrcode
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import update
@@ -337,6 +340,25 @@ def cancel_reservation(reservation_id):
             db.session.commit()
             flash('Appointment cancelled. The time is open for someone else to book.', 'success')
     return redirect(url_for('customer_dashboard'))
+
+
+@app.route('/reservation/<int:reservation_id>/qr')
+@role_required(*CUSTOMER_ROLES)
+def reservation_qr(reservation_id):
+    reservation = db.get_or_404(Reservation, reservation_id)
+    if reservation.customer_id != current_user().id:
+        abort(403)
+    slot = reservation.slot
+    calendar_url = 'https://calendar.google.com/calendar/render?' + urlencode({
+        'action': 'TEMPLATE',
+        'text': slot.offering.name,
+        'dates': f'{slot.starts_at.strftime("%Y%m%dT%H%M%S")}/{slot.ends_at.strftime("%Y%m%dT%H%M%S")}',
+        'details': f'QFlow appointment with {slot.offering.provider.name}.',
+    })
+    output = BytesIO()
+    qrcode.make(calendar_url).save(output, format='PNG')
+    output.seek(0)
+    return send_file(output, mimetype='image/png', download_name='qflow-calendar.png')
 
 
 @app.route('/api/openings')
