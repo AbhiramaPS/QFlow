@@ -9,10 +9,13 @@ from sqlalchemy import update
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__, instance_relative_config=True)
-os.makedirs(app.instance_path, exist_ok=True)
+# Vercel Functions have a read-only project filesystem. `/tmp` is writable,
+# but it is ephemeral; production use should provide a hosted DATABASE_URL.
+runtime_instance_path = '/tmp/qflow-instance' if os.getenv('VERCEL') else app.instance_path
+os.makedirs(runtime_instance_path, exist_ok=True)
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'local-development-key-change-me'),
-    SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL') or 'sqlite:///' + os.path.join(app.instance_path, 'qflow.db'),
+    SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL') or 'sqlite:///' + os.path.join(runtime_instance_path, 'qflow.db'),
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
 )
 db = SQLAlchemy(app)
@@ -20,7 +23,7 @@ CSRFProtect(app)
 
 
 def local_now():
-    # This single-campus MVP stores appointment times as local wall-clock times.
+    # This MVP stores appointment times as local wall-clock times.
     return datetime.now().replace(second=0, microsecond=0)
 
 
@@ -388,3 +391,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=os.getenv('FLASK_DEBUG') == '1')
+
