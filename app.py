@@ -20,6 +20,10 @@ app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'local-development-key-change-me'),
     SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL') or 'sqlite:///' + os.path.join(runtime_instance_path, 'qflow.db'),
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    SESSION_COOKIE_NAME='qflow_session',
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=bool(os.getenv('VERCEL')),
 )
 db = SQLAlchemy(app)
 CSRFProtect(app)
